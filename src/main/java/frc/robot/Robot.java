@@ -1,48 +1,104 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
+import frc.robot.subsystems.Drivetrain;
 import frc.robot.subsystems.Elevador;
+import frc.robot.subsystems.Shooter;
 
 public class Robot extends TimedRobot {
 
+  public Drivetrain drivetrain;
+  public Shooter shooter;
   public Elevador elevador;
   public XboxController controller;
+  public double startTime;
 
   // Banderas para movimiento
   private boolean moveToL3 = false;
   private boolean moveToL2 = false;
   private boolean moveToBottom = false;
 
+  // Control de velocidad del drivetrain
+  private double drivelimit = 1.0;
+  private int lastPOV = -1; // para detectar cambios en la cruceta
+  private boolean lastRightTriggerPressed = false;
+
+  public Robot() {
+  }
+
   @Override
   public void robotInit() {
+    drivetrain = new Drivetrain();
     elevador = new Elevador();
+    shooter = new Shooter();
     controller = new XboxController(0);
+  }
+
+  @Override
+  public void robotPeriodic() {
+  }
+
+  @Override
+  public void autonomousInit() {
+    startTime = Timer.getFPGATimestamp(); // Guarda el tiempo en el que inició autonomo
+  }
+
+  @Override
+  public void autonomousPeriodic() {
+    double timeElapsed = Timer.getFPGATimestamp() - startTime;
+
+    if (timeElapsed < 3.0) {
+      drivetrain.drive(-0.5, 0); // Avanza hacia adelante por 3 segundos
+    } else {
+      drivetrain.drive(0, 0); // Se detiene después
+    }
+  }
+
+  @Override
+  public void teleopInit() {
   }
 
   @Override
   public void teleopPeriodic() {
 
+    // ----- TOGGLE con la cruceta hacia arriba -----
+    int currentPOV = controller.getPOV();
+
+    if (currentPOV == 0 && lastPOV != 0) {
+      // Toggle entre 1.0 y 0.5
+      if (drivelimit == 1.0) {
+        drivelimit = 0.5;
+      } else {
+        drivelimit = 1.0;
+      }
+      System.out.println("driveLimit ahora es " + drivelimit);
+    }
+
+    lastPOV = currentPOV; // actualizar estado
+
+    // Usar drivelimit en el drivetrain
+    drivetrain.drive(controller.getRightY() * drivelimit, controller.getLeftX() * drivelimit);
+
+    // --------- Elevador ---------
     if (controller.getYButton()) {
       moveToL3 = true;
       System.out.println("Comenzando a subir al nivel L3...");
     }
 
-    // Si presiono el botón X, inicio el movimiento hacia L2
     if (controller.getXButton()) {
       moveToL2 = true;
       System.out.println("Comenzando a subir al nivel L2...");
     }
 
-    // Si presiono el botón A, inicio el movimiento hacia abajo (limit switch 0)
     if (controller.getAButton()) {
       moveToBottom = true;
       System.out.println("Comenzando a bajar al nivel inferior...");
     }
 
-    // Movimiento hacia L3
     if (moveToL3) {
-      if (elevador.isAtTop()) { // seguir subiendo hasta que llegue
+      if (elevador.isNotAtTop()) {
         elevador.subir();
         System.out.println("Subiendo elevador hacia L3...");
       } else {
@@ -52,9 +108,8 @@ public class Robot extends TimedRobot {
       }
     }
 
-    // Movimiento hacia L2
     if (moveToL2) {
-      if (elevador.isAtMiddle()) { // seguir subiendo hasta que llegue
+      if (elevador.isNotAtMiddle()) {
         elevador.subir();
         System.out.println("Subiendo elevador hacia L2...");
       } else {
@@ -64,9 +119,8 @@ public class Robot extends TimedRobot {
       }
     }
 
-    // Movimiento hacia abajo
     else if (moveToBottom) {
-      if (elevador.isAtBottom()) { // seguir bajando hasta que llegue
+      if (elevador.isNotAtBottom()) {
         elevador.bajar();
         System.out.println("Bajando elevador...");
       } else {
@@ -76,9 +130,31 @@ public class Robot extends TimedRobot {
       }
     }
 
-    // Si no hay movimiento pendiente
     else {
       elevador.detenerse();
     }
+
+    // --------- Shooter ---------
+    double rightTrigger = controller.getRawAxis(3); // Shoot
+    double leftTrigger = controller.getRawAxis(2); // Reversa
+
+    boolean rightTriggerPressed = rightTrigger > 0.05;
+
+    if (rightTriggerPressed) {
+      shooter.shoot(rightTrigger);
+    } else if (leftTrigger > 0.05) {
+      shooter.reverse(leftTrigger);
+    } else {
+      shooter.stop();
+    }
+
+    // ----- detectar soltar el right trigger -----
+    if (lastRightTriggerPressed && !rightTriggerPressed) {
+      // Se soltó el trigger → bajar elevador
+      moveToBottom = true;
+      System.out.println("Trigger derecho soltado, bajando elevador...");
+    }
+
+    lastRightTriggerPressed = rightTriggerPressed; // actualizar estado
   }
 }

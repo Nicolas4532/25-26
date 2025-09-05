@@ -53,15 +53,15 @@ public class Elevador extends SubsystemBase {
         elevadorMotorLeader.set(0.0); // Parar
     }
 
-    public boolean isAtBottom() {
+    public boolean isNotAtBottom() {
         return !Limit1.get(); // switch NO → presionado = true
     }
 
-    public boolean isAtMiddle() {
+    public boolean isNotAtMiddle() {
         return !Limit2.get();
     }
 
-    public boolean isAtTop() {
+    public boolean isNotAtTop() {
         return !Limit3.get();
     }
 }
