@@ -10,6 +10,7 @@ public class Robot extends TimedRobot {
   public XboxController controller;
 
   // Banderas para movimiento
+  private boolean moveToL3 = false;
   private boolean moveToL2 = false;
   private boolean moveToBottom = false;
 
@@ -21,6 +22,12 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
+
+    if (controller.getYButton()) {
+      moveToL3 = true;
+      System.out.println("Comenzando a subir al nivel L3...");
+    }
+
     // Si presiono el botón X, inicio el movimiento hacia L2
     if (controller.getXButton()) {
       moveToL2 = true;
@@ -33,6 +40,18 @@ public class Robot extends TimedRobot {
       System.out.println("Comenzando a bajar al nivel inferior...");
     }
 
+    // Movimiento hacia L3
+    if (moveToL3) {
+      if (elevador.isAtTop()) { // seguir subiendo hasta que llegue
+        elevador.subir();
+        System.out.println("Subiendo elevador hacia L3...");
+      } else {
+        elevador.detenerse();
+        moveToL3 = false;
+        System.out.println("Elevador detenido en L3.");
+      }
+    }
+
     // Movimiento hacia L2
     if (moveToL2) {
       if (elevador.isAtMiddle()) { // seguir subiendo hasta que llegue
@@ -41,7 +60,7 @@ public class Robot extends TimedRobot {
       } else {
         elevador.detenerse();
         moveToL2 = false;
-        System.out.println("Elevador detenido en L2 (switch activado).");
+        System.out.println("Elevador detenido en L2.");
       }
     }
 
@@ -49,11 +68,11 @@ public class Robot extends TimedRobot {
     else if (moveToBottom) {
       if (elevador.isAtBottom()) { // seguir bajando hasta que llegue
         elevador.bajar();
-        System.out.println("Bajando elevador hacia abajo...");
+        System.out.println("Bajando elevador...");
       } else {
         elevador.detenerse();
         moveToBottom = false;
-        System.out.println("Elevador detenido en el límite inferior (switch activado).");
+        System.out.println("Elevador detenido en el límite inferior.");
       }
     }
 
