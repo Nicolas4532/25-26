@@ -19,6 +19,7 @@ public class Robot extends TimedRobot {
   private boolean moveToL3 = false;
   private boolean moveToL2 = false;
   private boolean moveToBottom = false;
+  private boolean Estop = false;
 
   // Control de velocidad del drivetrain
   private double drivelimit = 1.0;
@@ -58,6 +59,12 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopInit() {
+    if (Estop) {
+      moveToBottom = false;
+      moveToL2 = false;
+      moveToL3 = false;
+      drivelimit = 0.0;
+    }
   }
 
   @Override
@@ -75,6 +82,16 @@ public class Robot extends TimedRobot {
       }
       System.out.println("driveLimit ahora es " + drivelimit);
     }
+    // ----- EMERGENCY STOP con la cruceta hacia abajo -----
+    if (currentPOV == 180 && lastPOV != 180) {
+      Estop = !Estop; // cambia de true a false o de false a true
+      System.out.println("!!!!EMERGENCY STOP " + (Estop ? "ACTIVADO" : "DESACTIVADO") + "!!!");
+    }
+
+    lastPOV = currentPOV; // actualizar el último POV
+
+    // Actualizar último POV
+    lastPOV = currentPOV;
 
     lastPOV = currentPOV; // actualizar estado
 
@@ -150,7 +167,7 @@ public class Robot extends TimedRobot {
 
     // ----- detectar soltar el right trigger -----
     if (lastRightTriggerPressed && !rightTriggerPressed) {
-      // Se soltó el trigger → bajar elevador
+      // Se soltó el trigger = bajar elevador
       moveToBottom = true;
       System.out.println("Trigger derecho soltado, bajando elevador...");
     }
